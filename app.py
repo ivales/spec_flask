@@ -56,7 +56,26 @@ def create_quote():
    data = request.json
    data['id'] = last_quote_id() + 1
    quotes.append(data)
+#Task2-2
    return data, 201
+
+#Task 2-4
+@app.route("/quotes/<int:id>", methods=['PUT'])
+def edit_quote(id):
+    for i in range(len(quotes)):
+        if quotes[i]["id"] == id:
+            quotes[i].update(request.json)
+            return quotes[i], 200
+    return f"Quote with id={id} not found", 404
+
+#Task 2-5
+@app.route("/quotes/<int:id>", methods=['DELETE'])
+def delete_quote(id):
+    for quote in quotes:
+        if quote["id"] == id:
+            quotes.remove(quote)
+            return f"Quote with id={id} is deleted", 200
+    return f"Quote with id={id} not found", 404
 
 
 def last_quote_id():
