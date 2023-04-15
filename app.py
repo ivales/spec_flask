@@ -54,12 +54,13 @@ def random_quote():
 @app.route("/quotes", methods=['POST'])
 def create_quote():
    data = request.json
-   print("data = ", data)
-   quotes.append({"index":last_quote_id()+1, "author": data["author"], "text":data["text"]})
-   return get_quote(last_quote_id()), 201
+   data['id'] = last_quote_id() + 1
+   quotes.append(data)
+   return data, 201
+
 
 def last_quote_id():
-    return quotes[-1]["id"]
+    return quotes[-1]['id']
 
 if __name__ == "__main__":
    app.run(debug=True)
