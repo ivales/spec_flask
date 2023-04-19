@@ -1,121 +1,88 @@
 import random
+import sqlite3
+from pathlib import Path
+from flask import Flask, request, jsonify, g
 
-from flask import Flask, request
+BASE_DIR = Path(__file__).parent
+path_to_db = BASE_DIR / "test.db"
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 
-quotes = [
-    {
-        "id": 3,
-        "author": "Rick Cook",
-        "text": "Программирование сегодня — это гонка разработчиков программ, стремящихся писать программы с большей и лучшей идиотоустойчивостью, и вселенной, которая пытается создать больше отборных идиотов. Пока вселенная побеждает.",
-        "rating": 2
-    },
-    {
-        "id": 5,
-        "author": "Waldi Ravens",
-        "text": "Программирование на С похоже на быстрые танцы на только что отполированном полу людей с острыми бритвами в руках.",
-        "rating": 5
-    },
-    {
-        "id": 6,
-        "author": "Mosher's Law of Software Engineering",
-        "text": "Не волнуйтесь, если что-то не работает. Если бы всё работало, вас бы уволили.",
-        "rating": 4
-    },
-    {
-        "id": 8,
-        "author": "Yoggi Berra",
-        "text": "В теории, теория и практика неразделимы. На практике это не так.",
-        "rating": 3
-    },
 
-]
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(path_to_db)
+    return db
 
 
-# Task 1-1
-@app.route("/quotes/<int:id>")
-def get_quote(id):
-    for quote in quotes:
-        if quote["id"] == id:
-            return quote
-    # Task 1-2
-    return f"Quote with id={id} not found", 404
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
 
-# Task1-3
-@app.route("/quotes/count")
-def count_quotes():
-    return {
-        "count": len(quotes)
-    }, 200
+@app.route("/quotes/")
+def get_quotes():
+    cursor = get_db().cursor()
+    cursor.execute("SELECT * from quotes")
+    quotes = cursor.fetchall()
+    return jsonify(quotes), 201
 
 
-# Task1-4
-@app.route("/quotes/random")
-def random_quote():
-    return random.choice(quotes), 200
+@app.route("/quotes/<int:quote_id>")
+def get_quote(quote_id):
+    cursor = get_db().cursor()
+    cursor.execute(f"SELECT * from quotes WHERE id={quote_id}")
+    quote = cursor.fetchone()
+    if quote is None:
+        return f"Quote with id={quote_id} not found", 404
+    return jsonify(quote)
 
 
-# Task2-1
 @app.route("/quotes", methods=['POST'])
 def create_quote():
-    data = request.json
-    data['id'] = last_quote_id() + 1
-    rating_check(data)
-    quotes.append(data)
-    # Task2-2
-    return data, 201
+    quote = request.json
+    cursor = get_db().cursor()
+    cursor.execute("INSERT INTO quotes (author,text) VALUES (?, ?)", (quote["author"], quote["text"]))
+    get_db().commit()
+    return "Quote was successfully added", 201
 
 
-# Task 2-4
-@app.route("/quotes/<int:id>", methods=['PUT'])
-def edit_quote(id):
-    for i in range(len(quotes)):
-        if quotes[i]["id"] == id:
-            quotes[i].update(request.json)
-            return quotes[i], 200
-    return f"Quote with id={id} not found", 404
+@app.route("/quotes/<int:quote_id>", methods=['PUT'])
+def edit_quote(quote_id):
+    cursor = get_db().cursor()
+    command = quote_update(request.json, quote_id)
+    if command is None:
+        return f"It is nothing to update"
+    cursor.execute(command)
+    get_db().commit()
+    if cursor.rowcount == 0:
+        return f"Quote with id={quote_id} not found", 404
+    return f"Quote with id={quote_id} was updated", 200
 
 
-# Task 2-5
-@app.route("/quotes/<int:id>", methods=['DELETE'])
-def delete_quote(id):
-    for quote in quotes:
-        if quote["id"] == id:
-            quotes.remove(quote)
-            return f"Quote with id={id} is deleted", 200
-    return f"Quote with id={id} not found", 404
-
-#Add_tasks
-@app.route("/quotes/filter", methods=['GET'])
-def filter_quote():
-    args = request.args
-    author = args.get('author')
-    rating = args.get('rating')
-    new_quotes = []
-    for quote in quotes:
-        if None not in (author, rating):
-            if quote["author"] == author and quote["rating"] == int(rating):
-                new_quotes.append(quote)
-        elif author is not None:
-            if quote["author"] == author:
-                new_quotes.append(quote)
-        elif rating is not None:
-            if quote["rating"] == int(rating):
-                new_quotes.append(quote)
-    return new_quotes
+@app.route("/quotes/<int:quote_id>", methods=['DELETE'])
+def delete_quote(quote_id):
+    cursor = get_db().cursor()
+    cursor.execute(f"DELETE from quotes WHERE id={quote_id}")
+    get_db().commit()
+    if cursor.rowcount > 0:
+        return f"Quote with id={quote_id} deleted", 200
+    return f"Quote with id={quote_id} not found", 404
 
 
-def last_quote_id():
-    return quotes[-1]['id']
-
-
-def rating_check(quote):
-    if "rating" not in list(quote.keys()) or int("rating") > 5:
-        quote["rating"] = 1
-    return 0
+def quote_update(quote, quote_id):
+    if "author" in quote and "text" in quote:
+        return f"UPDATE quotes SET author='{quote['author']}',text='{quote['text']}' WHERE id={quote_id}"
+    elif "author" in quote:
+        return f"UPDATE quotes SET author='{quote['author']}' WHERE id={quote_id}"
+    elif "text" in quote:
+        return f"UPDATE quotes SET text='{quote['text']}' WHERE id={quote_id}"
+    else:
+        return None
 
 
 if __name__ == "__main__":
