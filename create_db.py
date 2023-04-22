@@ -40,19 +40,19 @@ class QuoteModel(db.Model):
 
 app.app_context().push()
 
-quotesForQuoteModel = [QuoteModel(AuthorModel("Nick"), 'Нет пламя без огня', 1),
-                       QuoteModel(AuthorModel("Folk"),
+quotesForQuoteModel = [QuoteModel(AuthorModel.query.get(1), 'Нет пламя без огня', 1),
+                       QuoteModel(AuthorModel.query.get(1),
                                   'Программирование сегодня — это гонка разработчиков программ, стремящихся писать программы с большей и лучшей идиотоустойчивостью, и вселенной, которая пытается создать больше отборных идиотов. Пока вселенная побеждает.',
                                   4),
-                       QuoteModel(AuthorModel("Ralph"),
+                       QuoteModel(AuthorModel.query.get(2),
                                   'Программирование на С похоже на быстрые танцы на только что отполированном полу людей с острыми бритвами в руках.',
                                   1),
-                       QuoteModel(AuthorModel("Waldo"),
+                       QuoteModel(AuthorModel.query.get(3),
                                   'Не волнуйтесь, если что-то не работает. Если бы всё работало, вас бы уволили.', 3),
-                       QuoteModel(AuthorModel("Tom"), 'В теории, теория и практика неразделимы. На практике это не так.', 2),
-                       QuoteModel(AuthorModel("Emerson"), 'Съешь еще этих французских булок, да выпей чаю', 5)]
+                       QuoteModel(AuthorModel.query.get(4), 'В теории, теория и практика неразделимы. На практике это не так.', 2),
+                       QuoteModel(AuthorModel.query.get(5), 'Съешь еще этих французских булок, да выпей чаю', 5)]
 
-authorsForAuthorModel = ['Nick', 'Folk', 'Tom', 'Ralph', 'Emerson']
+authorsForAuthorModel = [AuthorModel('Nick'), AuthorModel('Folk'), AuthorModel('Tom'), AuthorModel('Ralph'), AuthorModel('Emerson')]
 
 
 engine = create_engine(f"sqlite:///{BASE_DIR / 'test.db'}")
