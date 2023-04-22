@@ -1,8 +1,11 @@
-import create_db
 from http.client import HTTPException
+from flask_migrate import Migrate
 from flask import Flask, jsonify, request
 from pathlib import Path
+
+import create_db
 from create_db import QuoteModel
+from flask_sqlalchemy import SQLAlchemy
 
 BASE_DIR = Path(__file__).parent
 
@@ -13,6 +16,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = create_db.db
 db.init_app(app)
+migrate = Migrate(app, db)
 
 
 @app.errorhandler(HTTPException)

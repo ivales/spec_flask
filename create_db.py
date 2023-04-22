@@ -1,3 +1,4 @@
+from sqlalchemy import *
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -15,8 +16,8 @@ migrate = Migrate(app, db)
 
 
 class QuoteModel(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    author = db.Column(db.String(32), unique=False)
+    id = db.Column(Integer, primary_key=True)
+    author = db.Column(String(32), unique=False)
     text = db.Column(db.String(255), unique=False)
     rating = db.Column(db.Integer, unique=False, default=1)
 
@@ -27,8 +28,7 @@ class QuoteModel(db.Model):
 
 
 app.app_context().push()
-db.drop_all()
-db.create_all()
+
 quotesForQuoteModel = [QuoteModel('Народная мудрость', 'Нет пламя без огня', 1),
                        QuoteModel('Rick Cook',
                                   'Программирование сегодня — это гонка разработчиков программ, стремящихся писать программы с большей и лучшей идиотоустойчивостью, и вселенной, которая пытается создать больше отборных идиотов. Пока вселенная побеждает.',
@@ -41,6 +41,15 @@ quotesForQuoteModel = [QuoteModel('Народная мудрость', 'Нет �
                        QuoteModel('Yoggi Berra', 'В теории, теория и практика неразделимы. На практике это не так.', 2),
                        QuoteModel('Test', 'Съешь еще этих французских булок, да выпей чаю', 5)]
 
-for quote in quotesForQuoteModel:
-    db.session.add(quote)
-db.session.commit()
+engine = create_engine(f"sqlite:///{BASE_DIR / 'test.db'}")
+if not inspect(engine).has_table("quote_model"):  # If table don't exist, Create.
+    metadata = MetaData(engine)
+    # Create a table with the appropriate Columns
+    Table("quote_model", metadata,
+          Column('id', Integer, primary_key=True, nullable=False),
+          Column('author', String(32)), Column('text', String(255)),
+          Column('rating', Integer))
+    metadata.create_all()
+    for quote in quotesForQuoteModel:
+        db.session.add(quote)
+    db.session.commit()
