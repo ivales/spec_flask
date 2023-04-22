@@ -1,4 +1,4 @@
-from sqlalchemy import *
+from sqlalchemy import Table, Integer, String, create_engine, inspect, Column, MetaData
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -50,6 +50,8 @@ if not inspect(engine).has_table("quote_model"):  # If table don't exist, Create
           Column('author', String(32)), Column('text', String(255)),
           Column('rating', Integer))
     metadata.create_all()
+
+if len(QuoteModel.query.all()) == 0:
     for quote in quotesForQuoteModel:
         db.session.add(quote)
     db.session.commit()
