@@ -19,7 +19,7 @@ class AuthorModel(db.Model):
     __tablename__ = "authors"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True)
-    quotes = db.relationship('QuoteModel', backref='author', lazy='dynamic')
+    quotes = db.relationship('QuoteModel', backref='author', lazy='dynamic',  cascade="all, delete-orphan")
 
     def __init__(self, name):
         self.name = name
