@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Integer, String, create_engine, inspect, Column, MetaData
+from sqlalchemy import Table, Integer, String, create_engine, inspect, Column, MetaData, func, DateTime
 from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -31,8 +31,9 @@ class QuoteModel(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey(AuthorModel.id))
     text = db.Column(db.String(255), unique=False)
     rating = db.Column(db.Integer, unique=False, default=1)
+    created = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
-    def __init__(self, author, text, rating):
+    def __init__(self, author, text, rating=1):
         self.author_id = author.id
         self.text = text
         self.rating = rating
@@ -61,7 +62,9 @@ if not inspect(engine).has_table("quotes"):  # If table don't exist, Create.
     Table("quotes", metadata,
           Column('id', Integer, primary_key=True, nullable=False),
           Column('author_id', Integer), Column('text', String(255)),
-          Column('rating', Integer))
+          Column('rating', Integer, nullable=False, default=1),
+          Column('created', DateTime(timezone=True), server_default=func.now())
+          )
     metadata.create_all()
 
 
@@ -70,7 +73,7 @@ if len(AuthorModel.query.all()) == 0:
         db.session.add(author)
     db.session.commit()
 
-quotesForQuoteModel = [QuoteModel(AuthorModel.query.get(1), 'Нет пламя без огня', 1),
+quotesForQuoteModel = [QuoteModel(AuthorModel.query.get(1), 'Нет пламя без огня'),
                        QuoteModel(AuthorModel.query.get(1),
                                   'Программирование сегодня — это гонка разработчиков программ, стремящихся писать программы с большей и лучшей идиотоустойчивостью, и вселенной, которая пытается создать больше отборных идиотов. Пока вселенная побеждает.',
                                   4),

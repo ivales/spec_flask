@@ -110,17 +110,16 @@ def create_quote(author_id):
     if isinstance(author, tuple):
         return author
     new_qoute = request.json
-    error = "Data of new quote is incorrect, should contain only \"text\" (string) and \"rating\" (int 1..5)" \
-            " parameters"
-    print(new_qoute)
+    error = "Data of new quote is incorrect, should contain only \"text\" (string) and \"rating\" (int 1..5) \(" \
+            "optional\) parameters"
     try:
-        if not isinstance(new_qoute["text"], str) or not isinstance(new_qoute["rating"], int) or not 1 <= \
-                                                                                                     new_qoute[
-                                                                                                         "rating"] <= 5:
+        if not isinstance(new_qoute["text"], str):
             return error
-        else:
+        if "rating" in new_qoute and isinstance(new_qoute["rating"], int) and 1 <= new_qoute["rating"] <= 5:
             db.session.add(QuoteModel(AuthorModel.query.get(author_id), new_qoute["text"], new_qoute["rating"]))
-            db.session.commit()
+        else:
+            db.session.add(QuoteModel(AuthorModel.query.get(author_id), new_qoute["text"]))
+        db.session.commit()
     except TypeError:
         return error
     return "Quote was successfully added", 201
@@ -158,6 +157,24 @@ def delete_quote(quote_id):
     return f"Quote with id={quote_id} was successfully deleted", 200
 
 
+@app.route("/quotes/<int:quote_id>/like")
+def like_quote(quote_id):
+    quote_model = QuoteModel.query.get(quote_id)
+    if quote_model.rating <= 4:
+        quote_model.rating += 1
+        db.session.commit()
+    return "", 200
+
+
+@app.route("/quotes/<int:quote_id>/dislike")
+def dislike_quote(quote_id):
+    quote_model = QuoteModel.query.get(quote_id)
+    if quote_model.rating >= 2:
+        quote_model.rating -= 1
+        db.session.commit()
+    return "", 200
+
+
 @app.route("/quotes/filter", methods=['GET'])
 def filter_quote():
     args = request.args
@@ -181,7 +198,7 @@ def filter_quote():
 
 def quoteModel_parse(quoteModel):
     quote = {"id": quoteModel.id, "author": authorModel_parse(AuthorModel.query.get(quoteModel.author_id))["name"],
-             "text": quoteModel.text, "rating": quoteModel.rating}
+             "text": quoteModel.text, "rating": quoteModel.rating, "created": quoteModel.created.strftime('%d.%m.%Y')}
     return quote
 
 
