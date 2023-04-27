@@ -29,8 +29,29 @@ def get_authors():
     authors = []
     author_models = AuthorModel.query.all()
     for author_model in author_models:
-        authors.append(authorModel_parse(author_model))
-    return jsonify(authors), 200
+        if not author_model.deleted:
+            authors.append(authorModel_parse(author_model))
+    return authors, 200
+
+
+@app.route("/authors/deleted")
+def get_authors_deleted():
+    authors = []
+    author_models = AuthorModel.query.all()
+    for author_model in author_models:
+        if author_model.deleted:
+            authors.append(authorModel_parse(author_model))
+    return authors
+
+
+@app.route("/quotes/deleted/restore")
+def get_authors_deleted_restore():
+    author_models = AuthorModel.query.all()
+    for author_model in author_models:
+        if author_model.deleted:
+            author_model.deleted = False
+            db.session.commit()
+    return "Удаленные цитаты успешно восстановлены"
 
 
 @app.route("/authors/<int:author_id>")
@@ -67,9 +88,9 @@ def edit_author(author_id):
 @app.route("/authors/<int:author_id>", methods=['DELETE'])
 def delete_author(author_id):
     author_model = AuthorModel.query.get(author_id)
-    if author_model is None:
+    if author_model is None or author_model.deleted:
         return f"Author with id={author_id} not found", 404
-    db.session.delete(author_model)
+    author_model.deleted = True
     db.session.commit()
     return f"Author with id={author_id} and his quotes was successfully deleted", 200
 
@@ -79,14 +100,35 @@ def get_quotes():
     quotes = []
     quote_models = QuoteModel.query.all()
     for quote_model in quote_models:
-        quotes.append(quoteModel_parse(quote_model))
+        if not quote_model.deleted:
+            quotes.append(quoteModel_parse(quote_model))
     return quotes
+
+
+@app.route("/quotes/deleted")
+def get_quotes_deleted():
+    quotes = []
+    quote_models = QuoteModel.query.all()
+    for quote_model in quote_models:
+        if quote_model.deleted:
+            quotes.append(quoteModel_parse(quote_model))
+    return quotes
+
+
+@app.route("/quotes/deleted/restore")
+def get_quotes_deleted_restore():
+    quote_models = QuoteModel.query.all()
+    for quote_model in quote_models:
+        if quote_model.deleted:
+            quote_model.deleted = False
+            db.session.commit()
+    return "Удаленные цитаты успешно восстановлены"
 
 
 @app.route("/quotes/<int:quote_id>")
 def get_quote_id(quote_id):
     quote_model = QuoteModel.query.get(quote_id)
-    if quote_model is None:
+    if quote_model is None or quote_model.deleted:
         return f"Quote with id={quote_id} not found", 404
     return quoteModel_parse(quote_model)
 
@@ -150,9 +192,9 @@ def edit_quote(quote_id):
 @app.route("/quotes/<int:quote_id>", methods=['DELETE'])
 def delete_quote(quote_id):
     quote_model = QuoteModel.query.get(quote_id)
-    if quote_model is None:
+    if quote_model is None or quote_model.deleted:
         return f"Quote with id={quote_id} not found", 404
-    db.session.delete(quote_model)
+    quote_model.deleted = True
     db.session.commit()
     return f"Quote with id={quote_id} was successfully deleted", 200
 
