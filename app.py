@@ -44,20 +44,24 @@ def get_authors_deleted():
     return authors
 
 
-@app.route("/quotes/deleted/restore")
+@app.route("/authors/deleted/restore")
 def get_authors_deleted_restore():
     author_models = AuthorModel.query.all()
+    quote_models = QuoteModel.query.all()
     for author_model in author_models:
         if author_model.deleted:
             author_model.deleted = False
+            for quote_model in quote_models:
+                if quote_model.author_id == author_model.id:
+                    quote_model.deleted = False
             db.session.commit()
-    return "Удаленные цитаты успешно восстановлены"
+    return "Deleted authors and their qoutes restored successfuly"
 
 
 @app.route("/authors/<int:author_id>")
 def get_author_id(author_id):
     author_model = AuthorModel.query.get(author_id)
-    if author_model is None:
+    if author_model is None or author_model.deleted:
         return f"Author with id={author_id} not found", 404
     return authorModel_parse(author_model)
 
@@ -90,7 +94,11 @@ def delete_author(author_id):
     author_model = AuthorModel.query.get(author_id)
     if author_model is None or author_model.deleted:
         return f"Author with id={author_id} not found", 404
+    quote_models = QuoteModel.query.all()
     author_model.deleted = True
+    for quote_model in quote_models:
+        if quote_model.author_id == author_id:
+            quote_model.deleted = True
     db.session.commit()
     return f"Author with id={author_id} and his quotes was successfully deleted", 200
 
@@ -122,7 +130,7 @@ def get_quotes_deleted_restore():
         if quote_model.deleted:
             quote_model.deleted = False
             db.session.commit()
-    return "Удаленные цитаты успешно восстановлены"
+    return "Deleted qoutes restored successfuly"
 
 
 @app.route("/quotes/<int:quote_id>")
@@ -217,25 +225,25 @@ def dislike_quote(quote_id):
     return "", 200
 
 
-@app.route("/quotes/filter", methods=['GET'])
-def filter_quote():
+@app.route("/authors/filter", methods=['GET'])
+def filter_authors():
     args = request.args
-    if "author" not in args and "rating" not in args:
+    if "name" not in args and "surname" not in args:
         return "Filter parameters are absent or incorrect"
-    author = args.get('author')
-    rating = args.get('rating')
-    if None not in (author, rating):
-        quoteModels = QuoteModel.query.filter_by(author=author, rating=rating).all()
-    elif author is not None:
-        quoteModels = QuoteModel.query.filter_by(author=author).all()
-    elif rating is not None:
-        quoteModels = QuoteModel.query.filter_by(rating=rating).all()
-    filter_quotes = []
-    for quoteModel in quoteModels:
-        filter_quotes.append(quoteModel_parse(quoteModel))
-    if not filter_quotes:
+    name = args.get('name')
+    surname = args.get('surname')
+    if None not in (name, surname):
+        authorModels = AuthorModel.query.filter_by(name=name, surname=surname).all()
+    elif name is not None:
+        authorModels = AuthorModel.query.filter_by(name=name).all()
+    elif surname is not None:
+        authorModels = AuthorModel.query.filter_by(surname=surname).all()
+    filter_authors = []
+    for authorModel in authorModels:
+        filter_authors.append(authorModel_parse(authorModel))
+    if not filter_authors:
         return 'There is no result for your request', 404
-    return jsonify(filter_quotes), 200
+    return filter_authors, 200
 
 
 def quoteModel_parse(quoteModel):
@@ -245,7 +253,7 @@ def quoteModel_parse(quoteModel):
 
 
 def authorModel_parse(authorModel):
-    author = {"id": authorModel.id, "name": authorModel.name}
+    author = {"id": authorModel.id, "name": authorModel.name + ' ' + authorModel.surname}
     return author
 
 

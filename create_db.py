@@ -20,8 +20,9 @@ class AuthorModel(db.Model):
     __tablename__ = "authors"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, unique=True)
+    surname = db.Column(db.String, default='Dow')
     deleted = db.Column(db.Boolean, default=False)
-    #quotes = db.relationship('QuoteModel', foreign_keys=[], backref='author', lazy='dynamic', cascade="all, delete-orphan")
+    quotes = db.relationship('QuoteModel', foreign_keys=[], backref='author', lazy='dynamic', cascade="all, delete-orphan")
 
     def __init__(self, name):
         self.name = name
@@ -34,15 +35,13 @@ class QuoteModel(db.Model):
     text = db.Column(db.String(255), unique=False)
     rating = db.Column(db.Integer, unique=False, default=1)
     created = db.Column(db.DateTime(timezone=True), server_default=func.now())
-    #    deleted = db.Column(db.Boolean, default=False)
-    deleted = db.Column(Boolean, db.ForeignKey(AuthorModel.deleted), default=False)
-    # authors = db.relationship('AuthorModel', foreign_keys=[author_id])
-    deletes = db.relationship('AuthorModel', foreign_keys=[deleted])
+    deleted = db.Column(db.Boolean, default=False)
+
 
     def __init__(self, author, text, rating=1):
         self.author_id = author.id
         self.text = text
-        self.rating = rating
+        #self.rating = rating
 
 
 app.app_context().push()
@@ -56,7 +55,7 @@ if not inspect(engine).has_table("authors"):
     metadata = MetaData(engine)
     Table("authors", metadata,
           Column('id', Integer, primary_key=True, nullable=False),
-          Column('name', String(32)),
+          Column('name', String(32)), Column('surname', String(32), server_default='Dow'),
           Column('deleted', Boolean, nullable=False)
           )
     metadata.create_all()
